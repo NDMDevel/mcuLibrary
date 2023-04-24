@@ -11,6 +11,8 @@
 #include <chrono>
 #include <cstdint>
 
+using namespace std::chrono_literals;
+
 namespace mcu
 {
 
