@@ -13,7 +13,6 @@
 namespace mcu
 {
 
-//proto_header
 template<
     typename t_IdxType, 
     t_IdxType t_rxLen,  
@@ -65,6 +64,10 @@ public:
         return _txFifo.isEmpty();
     }
     //transfer methods
+    static void flushTx()
+    {
+        
+    }
     static void putIntoRx(t_IdxType data)
     {
         _rxFifo.put(data);

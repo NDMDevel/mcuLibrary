@@ -32,10 +32,12 @@ public:
 public:
     FifoBuffer(bool deepClean=false){ clear(deepClean); }
     void 	    put(const t_DataType& data);
+    t_IdxType   put(const t_DataType* buff,t_IdxType len);
     t_DataType  get();
-    void        get(t_DataType* dest,t_IdxType len);
+    t_IdxType   get(t_DataType* dest,t_IdxType len);
     t_DataType  peek()    const;
     t_DataType  peekAt(t_IdxType idx) const;
+    void        alterAt(t_IdxType idx,const t_DataType& data);
     bool 	    isEmpty() const;
     bool 	    isFull()  const;
     void	    clear(bool deepClean=false);
@@ -83,6 +85,13 @@ proto(void)::put(const t_DataType& data)
     showInternals();
 #endif
 }
+proto(t_IdxType)::put(const t_DataType* buff,t_IdxType len)
+{
+    t_IdxType count = 0;
+    while( count < len && !isFull() )
+        put(buff[count++]);
+    return count;
+}
 proto(t_DataType)::get()
 {
     auto retval = _buff[_tail];
@@ -96,9 +105,10 @@ proto(t_DataType)::get()
 #endif
     return retval;
 }
-proto(void)::get(t_DataType* dest,t_IdxType len)
+proto(t_IdxType)::get(t_DataType* dest,t_IdxType len)
 {
-    if( length() < len && dest != nullptr )
+    len = std::min(length(),len);
+    if( len != 0 && dest != nullptr )
         return;
     for( t_DataType idx=0 ; idx<len ; idx++ )
     {
@@ -109,6 +119,7 @@ proto(void)::get(t_DataType* dest,t_IdxType len)
 #ifdef FIFO_BUFFER_DEBUG
     showInternals();
 #endif
+    return len;
 }
 proto(t_DataType)::peek() const
 {
@@ -122,6 +133,21 @@ proto(t_DataType)::peekAt(t_IdxType idx) const
     if( _tail+idx < t_buffLen )
         return _buff[_tail+idx];
     return _buff[_tail+idx-t_buffLen];
+}
+proto(void)::alterAt(t_IdxType idx,const t_DataType& data)
+{
+    idx %= length();
+    if( _tail < _head )
+    {
+        _buff[_tail+idx] = data;
+        return;
+    }
+    if( _tail+idx < t_buffLen )
+    {
+        _buff[_tail+idx] = data;
+        return;
+    }
+    _buff[_tail+idx-t_buffLen] = data;
 }
 proto(bool)::isEmpty() const
 {

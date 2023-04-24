@@ -8,9 +8,11 @@
 #ifndef PERIPH_TIMER_HPP_
 #define PERIPH_TIMER_HPP_
 
-#include "TimerInterface.hpp"
 #include <chrono>
 #include <cstdint>
+
+namespace mcu
+{
 
 /** @brief Timer class
  *
@@ -46,8 +48,9 @@
  *  }
  */
 template<typename t_TimerResolution,intmax_t t_Num,intmax_t t_Den,t_TimerResolution(*t_GetTime)(void)>
-class Timer : public TimerInterface<t_TimerResolution,t_Num,t_Den>
+class Timer
 {
+private:
     static_assert(
         std::is_same<t_TimerResolution,std::uint8_t> ::value ||
         std::is_same<t_TimerResolution,std::uint16_t>::value ||
@@ -59,98 +62,114 @@ class Timer : public TimerInterface<t_TimerResolution,t_Num,t_Den>
     static_assert(t_Den != 0,"t_Den must be greater than zero");
     static_assert(t_GetTime != nullptr,"t_GetTime must be not nullptr");
     using ldouble_t = long double;
-public:
+public: //exported types
+    using TimerResolution = t_TimerResolution;
+    static constexpr auto Num = t_Num;
+    static constexpr auto Den = t_Den;
     using IncPeriod = std::chrono::duration< t_TimerResolution , std::ratio<t_Num,t_Den> >;
 public:
     //seconds to overflow (timer module)
-    static constexpr auto overflow_time = uint32_t(ldouble_t(t_TimerResolution(-1))*ldouble_t(t_Num)/ldouble_t(t_Den));
+    static constexpr auto overflow_time = t_TimerResolution(ldouble_t(t_TimerResolution(-1))*ldouble_t(t_Num)/ldouble_t(t_Den));
 public:
-    Timer() : _tick(0),_running(false){}
+    Timer(bool start=false) : _tick(0),_running(false){ if(start) this->start(); }
     void restart(){ start(); }
-    //interface methods
-    void start() override
+    void start() 
     {
         _tick = ~t_GetTime() + t_TimerResolution(1);
         _running = true;
     }
-    void stop() override
+    void stop() 
     {
         _tick = elapsed().count();
         _running = false;
     }
-    bool running() const override
+    bool running() const 
     {
     	return _running;
     }
-    IncPeriod elapsed() const override
+    IncPeriod elapsed() const 
     {
         if( _running )
             return IncPeriod(_tick + t_TimerResolution(t_GetTime()));
         return IncPeriod(_tick);
     }
-#if defined(TIMER_SUPPORT_THREE_WAY_CMP)
-    std::strong_ordering operator<=>(t_TimerResolution t) const override
+#if defined(__cpp_lib_three_way_comparison)
+    std::strong_ordering operator<=>(t_TimerResolution t) const 
     {
-        return elapsed().count() <=> t;
+        return t <=> elapsed().count();
     }
-    std::strong_ordering operator<=>(IncPeriod t) const override
+    std::strong_ordering operator<=>(IncPeriod t) const 
     {
-        return elapsed().count() <=> t.count();
+        return t.count() <=> elapsed().count();
     }
 #else
-    bool operator< (t_TimerResolution t) const override
+    bool operator< (t_TimerResolution t) const 
     {
         return elapsed().count() < t;
     }
-    bool operator<=(t_TimerResolution t) const override
+    bool operator<=(t_TimerResolution t) const 
     {
         return elapsed().count() <= t;
     }
-    bool operator> (t_TimerResolution t) const override
+    bool operator> (t_TimerResolution t) const 
     {
         return elapsed().count() > t;
     }
-    bool operator>=(t_TimerResolution t) const override
+    bool operator>=(t_TimerResolution t) const 
     {
         return elapsed().count() >= t;
     }
-    bool operator==(t_TimerResolution t) const override
+    bool operator==(t_TimerResolution t) const 
     {
         return elapsed().count() == t;
     }
-    bool operator!=(t_TimerResolution t) const override
+    bool operator!=(t_TimerResolution t) const 
     {
         return elapsed().count() != t;
     }
 
-    bool operator< (IncPeriod t) const override
+    bool operator< (IncPeriod t) const 
     {
         return elapsed().count() < t.count();
     }
-    bool operator<=(IncPeriod t) const override
+    bool operator<=(IncPeriod t) const 
     {
         return elapsed().count() <= t.count();
     }
-    bool operator> (IncPeriod t) const override
+    bool operator> (IncPeriod t) const 
     {
         return elapsed().count() > t.count();
     }
-    bool operator>=(IncPeriod t) const override
+    bool operator>=(IncPeriod t) const 
     {
         return elapsed().count() >= t.count();
     }
-    bool operator==(IncPeriod t) const override
+    bool operator==(IncPeriod t) const 
     {
         return elapsed().count() == t.count();
     }
-    bool operator!=(IncPeriod t) const override
+    bool operator!=(IncPeriod t) const 
     {
         return elapsed().count() != t.count();
     }
 #endif
+    void operator-=(t_TimerResolution dt)
+    {
+        _tick -= dt;
+    }
+    void operator-=(IncPeriod dt)
+    {
+        _tick -= dt.count();
+    }
+    TimerResolution getTick() const
+    {
+        return _tick;
+    }
 private:
     t_TimerResolution _tick;
     bool _running;
 };
 
-#endif /* PERIPH_TIMER_HPP_ */
+}//namespace mcu
+
+#endif // PERIPH_TIMER_HPP_
