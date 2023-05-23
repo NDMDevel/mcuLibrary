@@ -98,11 +98,11 @@ public:
 #if defined(__cpp_lib_three_way_comparison)
     std::strong_ordering operator<=>(t_TimerResolution t) const 
     {
-        return t <=> elapsed().count();
+        return elapsed().count() <=> t;
     }
     std::strong_ordering operator<=>(IncPeriod t) const 
     {
-        return t.count() <=> elapsed().count();
+        return elapsed().count() <=> t.count();
     }
 #else
     bool operator< (t_TimerResolution t) const 
@@ -121,7 +121,7 @@ public:
     {
         return elapsed().count() >= t;
     }
-    bool operator==(t_TimerResolution t) const 
+    bool operator==(t_TimerResolution t) const
     {
         return elapsed().count() == t;
     }
@@ -146,7 +146,7 @@ public:
     {
         return elapsed().count() >= t.count();
     }
-    bool operator==(IncPeriod t) const 
+    bool operator==(IncPeriod t) const
     {
         return elapsed().count() == t.count();
     }

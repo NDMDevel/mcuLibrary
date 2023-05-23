@@ -11,9 +11,6 @@
 #include <cstdint>
 #include <algorithm>
 
-//enable this macro to display internal data
-//#define FIFO_BUFFER_DEBUG
-
 namespace mcu
 {
 
@@ -41,7 +38,7 @@ public:
     bool 	    isEmpty() const;
     bool 	    isFull()  const;
     void	    clear(bool deepClean=false);
-    void        remove(t_IdxType len,bool fromHead);
+    void        remove(t_IdxType len,bool newest);
     t_IdxType   length()  const;
     t_IdxType   freeSpace() const;
 //    t_IdxType   size()    const { return length(); }
@@ -171,7 +168,7 @@ proto(void)::clear(bool deepClean)
     showInternals();
 #endif
 }
-proto(void)::remove(t_IdxType len,bool fromHead)
+proto(void)::remove(t_IdxType len,bool newest)
 {
     if( len == 0 )
         return;
@@ -180,7 +177,7 @@ proto(void)::remove(t_IdxType len,bool fromHead)
         clear();
         return;
     }
-    if( fromHead )
+    if( newest )
     {
         if( _tail < _head )
             _head -= len;
