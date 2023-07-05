@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 template<uint64_t N,typename T>
 consteval bool fits_on(){ return N <= T(~uint64_t(0)); }
