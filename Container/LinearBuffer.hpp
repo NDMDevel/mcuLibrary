@@ -2,6 +2,7 @@
 
 #include <array>
 #include "../Utils/SerializableT.hpp"
+#include "../Utils/TypeUtils.hpp"
 
 namespace mcu
 {
