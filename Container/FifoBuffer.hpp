@@ -14,9 +14,9 @@ class FifoBuffer
 {
 public:
     static constexpr auto maxLen = t_buffLen;
-    using IdxType = decltype(fit_type_t<t_buffLen>());
+    using IdxType = fit_combinations_t<t_buffLen>;
 public:
-                FifoRaw(bool deepClean=false){ clear(deepClean); }
+                FifoBuffer(bool deepClean=false){ clear(deepClean); }
     void 	    put(const t_DataType& data)
     {
         if( isFull() )
@@ -146,7 +146,7 @@ template<   typename    t_DataType,
 class FifoRaw
 {
 public:
-    using IdxType = decltype(fit_type_t<t_buffLen>());
+    using IdxType = decltype(fit_combinations_t<t_buffLen>());
     static constexpr IdxType maxLen(){ return t_buffLen; }
 public:
                 FifoRaw(bool deepClean=false){ clear(deepClean); }

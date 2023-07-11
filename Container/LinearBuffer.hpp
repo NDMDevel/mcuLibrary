@@ -11,7 +11,7 @@ template<typename t_DataType,uint32_t t_len>
 class LinearBuffer
 {
 private:
-	using IdxType = fit_type_t<t_len>;
+    using IdxType = fit_combinations_t<t_len>;
 public:
     static constexpr IdxType t_maxLen = t_len;
 public:
