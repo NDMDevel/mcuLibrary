@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Container/FifoRaw.hpp"
+#include "../Container/FifoBuffer.hpp"
 #include "../Timer/Timer.hpp"
 #include "../Utils/TypeUtils.hpp"
 #include "../Utils/SerializableT.hpp"
@@ -25,11 +25,10 @@ template <
     size_t t_txLen,
     typename t_Timer,
     typename t_Timer::TimerResolution t_eofTimeoutUs,    //10000us (10ms)
-    size_t  (*t_rxAvailable)(),
-    uint8_t (*t_rxRead)(),
-    size_t  (*t_txFreeSpace)(),
-    void    (*t_txWrite)(uint8_t),
-    void    (*t_txFlush)() = nullptr>
+    fit_value_t<t_txLen> (*t_rxAvailable)(),
+    uint8_t              (*t_rxRead)(),
+    bool                 (*t_txReady)(),
+    void                 (*t_txWrite)(uint8_t)>
 class Serial
 {
 private:
@@ -50,11 +49,13 @@ private:
         init,
         waitEof,
         idle,
-        flush
+        send,
+        waitTxComplete
     };
 public://extported types/constants
     static constexpr auto eofTimeout = typename t_Timer::IncPeriod(t_eofTimeoutUs);
-    using RxIdxType  = decltype(fit_type_t<t_rxLen>());
+    using RxIdxType  = fit_combinations_t<t_rxLen>;
+    using TxIdxType  = fit_combinations_t<t_txLen>;
 public:
     //-------------
     // RX handler
@@ -64,6 +65,7 @@ public:
         if( _rxst == RxState::shutdown )
         {
             _rxFrameCount = 0;
+            _rxBuffer.clear();
             _rxst = RxState::init;
         }
     }
@@ -121,7 +123,6 @@ public:
             //overflow: no space to store the input frame
             if( _rxBuffer.freeSpace() <= sizeof(RxIdxType) )
             {
-                std::cout << "---------------- NOT SPACE: DISCARTING FRAME" << std::endl;
                 //goto RxState::init to ignore the frame
                 _rxst = RxState::init;
                 return;
@@ -161,8 +162,6 @@ public:
                     //goto RxState::init to ignore the frame
                     //remove all data added to the buffer (including tye sizeof(RxFrameLenType) bytes
                     //reserved to store the frame len)
-                    std::cout << "- - - - - - - - - - - - - OVERFLOW: DISCARTING FRAME" << std::endl;
-
                     _rxBuffer.remove(_rxFrameLen+sizeof(RxIdxType),true);
                     _rxst = RxState::init;
                     return;
@@ -178,21 +177,39 @@ public:
     //-------------
     // TX handler
     //-------------
+#define TX_IMPLEMENTED
 #ifdef TX_IMPLEMENTED
-    uint8_t txFreeSpace() const
+    auto txInit() -> void
     {
-        return _txBuffer.freeSpace();
+        if( _txst == TxState::shutdown )
+        {
+            _txFrameCount = 0;
+            _txBuffer.clear();
+            _txst = TxState::init;
+        }
     }
-    uint8_t txAppend(const uint8_t* buff,uint8_t len)
+    auto txFreeSpace() const -> TxIdxType
     {
-        return _txBuffer.put(buff,len);
+        TxIdxType available = _txBuffer.freeSpace();
+        if( available >= sizeof(TxIdxType) )
+            return available - sizeof(TxIdxType);
+        return 0;
     }
-    void txFlush()
+    auto txFrameAppend(const uint8_t* buff,TxIdxType len) -> bool
     {
-        if( _txBuffer.length() != 0 && !_txFlushActive )
-            _txFlushActive = true;
+        if( _txBuffer.freeSpace() < len+sizeof(TxIdxType) )
+            return false;
+        SerializableT<TxIdxType> slen = len;
+        _txBuffer.put(slen.raw,slen.size());
+        _txBuffer.put(buff,len);
+        _txFrameCount++;
+        return true;
     }
-    void TxTask()
+    auto txFramesPending() -> TxIdxType
+    {
+        return _txFrameCount;
+    }
+    auto txTask() -> void
     {
         if( _txst == TxState::shutdown )
             return;
@@ -211,28 +228,32 @@ public:
         }
         if( _txst == TxState::idle )
         {
-            if( !_txFlushActive )
+            if( txFramesPending() == 0 )
                 return;
-            _txst = TxState::flush;
+            SerializableT<TxIdxType> slen;
+            for( TxIdxType idx=0 ; idx<slen.size() ; idx++ )
+                slen.raw[idx] = _txBuffer.peekAt(idx);
+            _txFrameLen = slen.value;
+            _txFrameIdx = 0;
+            _txst = TxState::send;
             return;
         }
-        if( _txst == TxState::flush )
+        if( _txst == TxState::send )
         {
-            if( auto flushLen = std::min(t_txFreeSpace(),_txBuffer.length()); flushLen != 0 )
-            {
-                while( flushLen-- )
-                {
-                    uint8_t data = _txBuffer.get();
-                    t_txWrite(data);
-                }
-                if( t_txFlush != nullptr )
-                    t_txFlush();
-                if( _txBuffer.isEmpty() )
-                {
-                    _txFlushActive = false;
-                    _txst = TxState::init;
-                }
-            }
+            if( !t_txReady() )
+                return;
+            t_txWrite(_txBuffer.peekAt(sizeof(TxIdxType) + _txFrameIdx++));
+            if( _txFrameIdx >= _txFrameLen )
+                _txst = TxState::waitTxComplete;
+            return;
+        }
+        if( _txst == TxState::waitTxComplete )
+        {
+            if( !t_txReady() )
+                return;
+            _txBuffer.remove(_txFrameLen + sizeof(TxIdxType));
+            _txFrameCount--;
+            _txst = TxState::init;
             return;
         }
     }
@@ -244,10 +265,14 @@ private:
     TxState _txst = TxState::shutdown;
     t_Timer _rxTim;
     t_Timer _txTim;
-    bool _txFlushActive = false;
+    //rx private
     RxIdxType _rxFrameLen;
     RxIdxType _rxFrameCount;
     RxIdxType _rxFrameLenIdx;
+    //tx private
+    TxIdxType _txFrameLen;
+    TxIdxType _txFrameCount;
+    TxIdxType _txFrameIdx;
 };
 }//namespace mcu
 
