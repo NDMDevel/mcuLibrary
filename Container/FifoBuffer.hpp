@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <tuple>
 #include <cstdint>
 #include "../Utils/TypeUtils.hpp"
 
@@ -8,15 +9,15 @@ namespace mcu
 {
 
 template<   typename    t_DataType,
-            size_t      t_buffLen,
-            bool        t_override = false>
+         size_t      t_buffLen,
+         bool        t_override = false>
 class FifoBuffer
 {
 public:
     static constexpr auto maxLen = t_buffLen;
     using IdxType = fit_combinations_t<t_buffLen>;
 public:
-                FifoBuffer(bool deepClean=false){ clear(deepClean); }
+    FifoBuffer(bool deepClean=false){ clear(deepClean); }
     void 	    put(const t_DataType& data)
     {
         if( isFull() )
@@ -28,7 +29,6 @@ public:
         }
         _buff[_head] = data;
         _head = incIdx(_head);
-        _isFull = (_head == _tail);
     }
     IdxType     put(const t_DataType* buff,IdxType len)
     {
@@ -48,7 +48,6 @@ public:
         auto retval = _buff[_tail];
         if( !isEmpty() )
             _tail = incIdx(_tail);
-        _isFull = false;
         return retval;
     }
     IdxType     get(t_DataType* dest,IdxType len)
@@ -64,26 +63,25 @@ public:
         }
         return len;
     }
-    t_DataType  peek()    const
+    t_DataType  operator[](IdxType idx) const
     {
-        return _buff[_tail];
+        return itemAt(idx);
     }
-    t_DataType  peekAt(IdxType idx) const
+    t_DataType& operator[](IdxType idx)
     {
-        return (*this)[idx];
+        return itemAt(idx);
     }
     bool 	    isEmpty() const
     {
-        return (_tail == _head) && !_isFull;
+        return _tail == _head;
     }
     bool 	    isFull()  const
     {
-        return _isFull;
+        return incIdx(_head) == _tail;
     }
     void	    clear(bool deepClean=false)
     {
         _tail = _head;
-        _isFull = false;
         if( deepClean )
             for( auto& item : _buff )
                 item = 0;
@@ -111,19 +109,18 @@ public:
         }
         else
             _tail = (_tail+len)%t_buffLen;
-        _isFull = false;
     }
     IdxType     length()  const
     {
-        if( _isFull )
-            return t_buffLen;
+        if( isFull() )
+            return t_buffLen - 1;
         if( _tail <= _head )
             return _head - _tail;
         return t_buffLen - _tail + _head;
     }
     IdxType     freeSpace() const
     {
-        return t_buffLen - length();
+        return t_buffLen - length() - 1;
     }
 protected:
     IdxType     incIdx(IdxType idx) const
@@ -132,24 +129,34 @@ protected:
             return 0;
         return idx + 1;
     }
+    t_DataType& itemAt(IdxType idx)
+    {
+        if( length() == 0 )
+            return _buff[_head];
+        idx %= length();
+        if( _tail < _head )
+            return _buff[_tail+idx];
+        if( _tail+idx < t_buffLen )
+            return _buff[_tail+idx];
+        return _buff[_tail+idx-t_buffLen];
+    }
 protected:
     t_DataType  _buff[t_buffLen];
     IdxType     _tail   = 0;
     IdxType     _head   = 0;
-    bool        _isFull = false;
 };
 
 
 template<   typename    t_DataType,
-            size_t      t_buffLen,
-            bool        t_override = false>
+         size_t      t_buffLen,
+         bool        t_override = false>
 class FifoRaw
 {
 public:
     using IdxType = decltype(fit_combinations_t<t_buffLen>());
     static constexpr IdxType maxLen(){ return t_buffLen; }
 public:
-                FifoRaw(bool deepClean=false){ clear(deepClean); }
+    FifoRaw(bool deepClean=false){ clear(deepClean); }
     void 	    put(const t_DataType& data)
     {
         if( isFull() )
@@ -161,7 +168,6 @@ public:
         }
         _buff[_head] = data;
         _head = incIdx(_head);
-        _isFull = (_head == _tail);
     }
     IdxType     put(const t_DataType* buff,IdxType len)
     {
@@ -181,7 +187,6 @@ public:
         auto retval = _buff[_tail];
         if( !isEmpty() )
             _tail = incIdx(_tail);
-        _isFull = false;
         return retval;
     }
     IdxType     get(t_DataType* dest,IdxType len)
@@ -207,16 +212,15 @@ public:
     }
     bool 	    isEmpty() const
     {
-        return (_tail == _head) && !_isFull;
+        return _tail == _head;
     }
     bool 	    isFull()  const
     {
-        return _isFull;
+        return incIdx(_head) == _tail;
     }
     void	    clear(bool deepClean=false)
     {
         _tail = _head;
-        _isFull = false;
         if( deepClean )
             for( auto& item : _buff )
                 item = 0;
@@ -244,19 +248,18 @@ public:
         }
         else
             _tail = (_tail+len)%t_buffLen;
-        _isFull = false;
     }
     IdxType     length()  const
     {
-        if( _isFull )
-            return t_buffLen;
+        if( isFull() )
+            return t_buffLen - 1;
         if( _tail <= _head )
             return _head - _tail;
         return t_buffLen - _tail + _head;
     }
     IdxType     freeSpace() const
     {
-        return t_buffLen - length();
+        return t_buffLen - length() - 1;
     }
     void        setDataAtAbsoluteIdx(IdxType idx,t_DataType data)
     {
@@ -368,7 +371,6 @@ protected:
     t_DataType  _buff[t_buffLen];
     IdxType     _tail   = 0;
     IdxType     _head   = 0;
-    bool        _isFull = false;
 };
 
 }//namespace mcu

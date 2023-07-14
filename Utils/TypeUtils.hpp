@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <type_traits>
 
+namespace mcu
+{
+
 /**
  * fits_on<N,T>()
  * 
@@ -64,3 +67,5 @@ struct is_specialization : std::false_type {};
 
 template<template<typename...> class Ref, typename... Args>
 struct is_specialization<Ref<Args...>, Ref>: std::true_type {};
+
+}//namespace mcu
