@@ -16,6 +16,6 @@
 using SysTick = mcu::Timer<uint32_t,1,1000,HAL_GetTick>;
 
 //Other timers implementations
-//using Tim2_us = Timer<uint32_t,1,1000000,[]{ return *reinterpret_cast<uint32_t*>(TIM2_BASE + 0x24); }>;
+//using Tim2_us = mcu::Timer<uint32_t,1,1000000,[]{ return *reinterpret_cast<uint32_t*>(TIM2_BASE + 0x24); }>;
 
 #endif /* SYSTIMER_HPP_ */
