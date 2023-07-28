@@ -5,8 +5,7 @@
  *      Author: Damian
  */
 
-#ifndef PERIPH_TIMER_HPP_
-#define PERIPH_TIMER_HPP_
+#pragma once
 
 #include <chrono>
 #include <cstdint>
@@ -49,7 +48,11 @@ namespace mcu
  *   return us;
  *  }
  */
-template<typename t_TimerResolution,intmax_t t_Num,intmax_t t_Den,t_TimerResolution(*t_GetTime)(void)>
+template<   typename t_TimerResolution,
+            intmax_t t_Num,
+            intmax_t t_Den,
+            t_TimerResolution(*t_GetTime)(),
+            void(*t_HardwareInit)() = nullptr>
 class Timer
 {
 private:
@@ -72,6 +75,7 @@ public: //exported types
 public:
     //seconds to overflow (timer module)
     static constexpr auto overflow_time = t_TimerResolution(ldouble_t(t_TimerResolution(-1))*ldouble_t(t_Num)/ldouble_t(t_Den));
+    static constexpr void hardwareInit() { t_HardwareInit(); }
 public:
     Timer(bool start=false) : _tick(0),_running(false){ if(start) this->start(); }
     void restart(){ start(); }
@@ -174,4 +178,3 @@ private:
 
 }//namespace mcu
 
-#endif // PERIPH_TIMER_HPP_

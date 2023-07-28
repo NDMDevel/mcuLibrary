@@ -13,6 +13,38 @@
 namespace mcu
 {
 
+template<size_t t_rx_len,
+         size_t t_tx_len,
+         typename t_Timer,
+         typename t_Timer::TimerResolution t_eofTimeout,
+         uint32_t (*t_rx_available)(),
+         uint8_t  (*t_rx_read)(),
+         bool     (*t_tx_ready)(),
+         void     (*t_tx_write)(const uint8_t*,uint32_t len)>
+class SerialTranseiver
+{
+private:
+    static_assert( t_rx_available   != nullptr , "template parameter t_rx_available can not be nullptr");
+    static_assert( t_rx_read        != nullptr , "template parameter t_rx_read can not be nullptr");
+    static_assert( t_tx_ready       != nullptr , "template parameter t_tx_ready can not be nullptr");
+    static_assert( t_tx_write       != nullptr , "template parameter t_tx_write can not be nullptr");
+public:
+    using rx_idx_t = mcu::fit_value_t<t_rx_len>;
+public:
+    //rx driver
+    auto rx_frame_available() -> bool { return false; }
+    auto rx_frame_discard() -> void {}
+    auto rx_frame_peek(rx_idx_t idx = 0) const -> uint8_t {}
+    auto rx_task() -> void{}
+    //tx driver
+    auto tx_send_then_eof(const uint8_t* buff,uint32_t len) -> void{}
+    auto tx_send(const uint8_t* buff,uint32_t len) -> void {}
+    auto tx_ready() -> bool { return t_tx_ready(); }
+    auto tx_task() -> void{}
+private:
+
+};
+/*
 template<
     typename t_IdxType, 
     t_IdxType t_rxLen,  
@@ -90,13 +122,13 @@ public: //debug
     }
 #endif
 private:
-    static FifoBuffer<uint8_t,t_IdxType,t_rxLen> _rxFifo;
-    static FifoBuffer<uint8_t,t_IdxType,t_txLen> _txFifo;
+    static FifoBuffer<uint8_t,t_rxLen> _rxFifo;
+    static FifoBuffer<uint8_t,t_txLen> _txFifo;
 };
 
 template<typename t_IdxType,t_IdxType t_rxLen,t_IdxType t_txLen,int t_SerialId>
 inline FifoBuffer<uint8_t,t_IdxType,t_rxLen> Serial<t_IdxType,t_rxLen,t_txLen,t_SerialId>::_rxFifo;
 template<typename t_IdxType,t_IdxType t_rxLen,t_IdxType t_txLen,int t_SerialId>
 inline FifoBuffer<uint8_t,t_IdxType,t_txLen> Serial<t_IdxType,t_rxLen,t_txLen,t_SerialId>::_txFifo;
-
+*/
 }//namespace mcu
