@@ -9,7 +9,7 @@
 #define SYSTIMER_HPP_
 
 #include "Timer/Timer.hpp"
-#error "Replace this line with a proper #include "xxxx.h" that provide access to the SysTick funcionallity."
+#error "Replace this line with a proper #include \"xxxx.h\" that provide access to the SysTick funcionallity."
 //#include "main.h"	//<- including main.h in a STCubeMX's project will provide access to SysTick functions
 
 //System Timer
