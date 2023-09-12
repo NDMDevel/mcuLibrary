@@ -176,5 +176,15 @@ private:
     bool _running;
 };
 
+template<typename>
+struct is_mcu_timer : std::false_type {};
+
+template<typename t_TimerResolution,
+         intmax_t t_Num,
+         intmax_t t_Den,
+         t_TimerResolution(*t_GetTime)(),
+         void(*t_HardwareInit)()>
+struct is_mcu_timer<Timer<t_TimerResolution,t_Num,t_Den,t_GetTime,t_HardwareInit>> : std::true_type {};
+
 }//namespace mcu
 
