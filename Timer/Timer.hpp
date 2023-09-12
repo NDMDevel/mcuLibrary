@@ -77,7 +77,7 @@ public:
     static constexpr auto overflow_time = t_TimerResolution(ldouble_t(t_TimerResolution(-1))*ldouble_t(t_Num)/ldouble_t(t_Den));
     static constexpr void hardwareInit() { t_HardwareInit(); }
 public:
-    Timer(bool start=false) : _tick(0),_running(false){ if(start) this->start(); }
+    Timer(bool start=true) : _tick(0),_running(start){ if(start) this->start(); }
     void restart(){ start(); }
     void start() 
     {

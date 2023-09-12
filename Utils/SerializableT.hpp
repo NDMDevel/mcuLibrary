@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 
 template<typename T>
 union SerializableT

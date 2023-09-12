@@ -25,7 +25,7 @@ template <
     size_t t_txLen,
     typename t_Timer,
     typename t_Timer::TimerResolution t_eofTimeoutUs,    //10000us (10ms)
-    fit_value_t<t_txLen> (*t_rxAvailable)(),
+    fit_value_t<t_rxLen> (*t_rxAvailable)(),
     uint8_t              (*t_rxRead)(),
     bool                 (*t_txReady)(),
     void                 (*t_txWrite)(uint8_t)>
