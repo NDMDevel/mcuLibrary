@@ -8,7 +8,7 @@
 namespace mcu
 {
 
-template<   typename    t_DataType,
+template<typename    t_DataType,
          size_t      t_buffLen,
          bool        t_override = false>
 class FifoBuffer
@@ -122,6 +122,11 @@ public:
     {
         return t_buffLen - length() - 1;
     }
+//    FifoBuffer<t_DataType,t_buffLen,t_override> strip(IdxType startIdx,IdxType count) const
+//    {
+//        FifoBuffer<t_DataType,t_buffLen,t_override> ret;
+//        if(  )
+//    }
 protected:
     IdxType     incIdx(IdxType idx) const
     {
