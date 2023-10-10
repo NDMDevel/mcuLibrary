@@ -2,6 +2,7 @@
 #include "../Utils/TypeUtils.hpp"
 #include "../Utils/SerializableT.hpp"
 #include <array>
+#include <span>
 #include <optional>
 
 #ifdef DEBUG_VLITEMFIFO
@@ -30,39 +31,81 @@ class VLItemFifo
 {
 public:
     using IdxType = fit_combinations_t<t_buffLen>;
-    struct ItemInfo
+/*    struct ItemInfo
     {
         const uint8_t *data;
         const IdxType len;
-    };
+    };*/
 private:
     static_assert( t_buffLen > 3 , "t_buffLen must be at least 4 to be usefull" );
 public:
-    VLItemFifo()
+    VLItemFifo(){ clear(); }
+    void clear()
     {
         len() = 0;
         tos() = 0;
     }
-    IdxType length() const { return len(); }
-    std::optional<ItemInfo> peekAt(IdxType itemIdx) const
+    IdxType itemsCount() const { return len(); }
+    std::optional<std::string_view> peekStringAt(IdxType itemIdx) const
+    {
+        if( auto ospan=peekSpanAt(itemIdx); ospan.has_value() )
+        {
+            auto span = ospan.value();
+            std::string_view strv(reinterpret_cast<const char*>(span.data()),span.size());
+            return strv;
+        }
+        return std::nullopt;
+    }
+    std::optional<std::span<const uint8_t>> peekSpanAt(IdxType itemIdx) const
     {
         const auto startIdx = [&](IdxType itemIdx) -> IdxType
         {
             return _buff[t_buffLen-3-itemIdx];
         };
-        if( itemIdx >= length() )
+        auto iC = itemsCount();
+        if( itemIdx >= itemsCount() )
             return std::nullopt;
         IdxType startIndex = startIdx(itemIdx);
         IdxType len = 0;
-        if( itemIdx == length()-1 )
+        if( itemIdx == itemsCount()-1 )
             len = tos() - startIdx(itemIdx);
         else
-            len = startIdx(itemIdx-1) - startIdx(itemIdx);
+        {
+            if( itemIdx == 0 )
+                len = startIdx(itemIdx+1);
+            else
+                len = startIdx(itemIdx) - startIdx(itemIdx-1);
+        }
+        std::span span{_buff.data()+startIndex,len};
+//        const ItemInfo item{.data = _buff.data()+startIndex , .len = len};
+        return {span};
+    }
+/*    std::optional<ItemInfo> peekAt(IdxType itemIdx) const
+    {
+        const auto startIdx = [&](IdxType itemIdx) -> IdxType
+        {
+            return _buff[t_buffLen-3-itemIdx];
+        };
+        auto iC = itemsCount();
+        if( itemIdx >= itemsCount() )
+            return std::nullopt;
+        IdxType startIndex = startIdx(itemIdx);
+        IdxType len = 0;
+        if( itemIdx == itemsCount()-1 )
+            len = tos() - startIdx(itemIdx);
+        else
+        {
+            if( itemIdx == 0 )
+                len = startIdx(itemIdx+1);
+            else
+                len = startIdx(itemIdx) - startIdx(itemIdx-1);
+        }
+        std::span span{_buff.data()+startIndex,len};
         const ItemInfo item{.data = _buff.data()+startIndex , .len = len};
         return {item};
-    }
+    }*/
     template<typename T>
-    bool push(const T& data)
+    bool pushItem(const T& data)
     {
         if( freeSpace() < sizeof(T) )
             return false;
@@ -75,8 +118,24 @@ public:
         len()++;
         return true;
     }
+    bool appendByteToItem(uint8_t data)
+    {
+        if( freeSpace() == 0 )
+            return false;
+        if( itemsCount() == 0 )
+        {
+            auto startIdx = tos();
+            nextEmptyStartIdx() = startIdx;
+            _buff[startIdx] = data;
+            tos() += sizeof(data);
+            len()++;
+            return true;
+        }
+        _buff[tos()++] = data;
+        return true;
+    }
     template<typename T>
-    std::optional<T> pop()
+    std::optional<T> popItem()
     {
         const auto lastStartIdx = [&]() -> IdxType
         {
@@ -94,7 +153,7 @@ public:
         tos() -= sizeof(T);
         return {aux.value};
     }
-    bool isEmpty() const { return length() == 0; }
+    bool isEmpty() const { return itemsCount() == 0; }
     IdxType freeSpace() const
     {
         if( tos()+len()+2 == t_buffLen )
@@ -102,15 +161,27 @@ public:
         return t_buffLen-2-len()-tos()-1;
     }
 #ifdef DEBUG_VLITEMFIFO
+    template<typename T=int,bool separateWhitSpace=true>
     void print_internals() const
     {
         for( size_t i=0 ; i<_buff.size() ; i++ )
-            std::cout << std::hex << int(_buff[i]) << " ";
+        {
+            if( i >= tos() )
+            {
+                std::cout <</* std::hex <<*/ int(_buff[i]) << " ";
+            }
+            else
+            {
+                if( separateWhitSpace )
+                    std::cout <</* std::hex <<*/ T(_buff[i]) << " ";
+                else
+                    std::cout <</* std::hex <<*/ T(_buff[i]);
+            }
+        }
         std::cout << std::endl;
     }
 #endif
-//private:
-//    const uint8_t* addressAt(IdxType idx) const{ return _buff.data()+lastStartIdx(idx); }
+private:
     IdxType  tos() const { return *(_buff.data()+t_buffLen-2); }
     IdxType& tos()       { return *(_buff.data()+t_buffLen-2); }
     IdxType  len() const { return *(_buff.data()+t_buffLen-1); }

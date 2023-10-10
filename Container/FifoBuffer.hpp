@@ -4,6 +4,7 @@
 #include <tuple>
 #include <cstdint>
 #include "../Utils/TypeUtils.hpp"
+#include "CircularSpan.hpp"
 
 namespace mcu
 {
@@ -121,6 +122,11 @@ public:
     IdxType     freeSpace() const
     {
         return t_buffLen - length() - 1;
+    }
+    CircularSpan<t_DataType,t_buffLen> getCircularSpan() const
+    {
+        return CircularSpan<t_DataType,t_buffLen>(_buff,length(),_tail,_head);
+//        return CircularSpan<t_DataType,t_buffLen>(_buff,_tail,_head);
     }
 //    FifoBuffer<t_DataType,t_buffLen,t_override> strip(IdxType startIdx,IdxType count) const
 //    {
@@ -364,6 +370,10 @@ public:
         if( _tail+idx < t_buffLen )
             return _buff[_tail+idx];
         return _buff[_tail+idx-t_buffLen];
+    }
+    CircularSpan<t_DataType,t_buffLen> getCircularSpan() const
+    {
+        return CircularSpan<t_DataType,t_buffLen>(_buff,length(),_tail,_head);
     }
 protected:
     IdxType     incIdx(IdxType idx) const
