@@ -4,14 +4,15 @@
 #include <array>
 #include <span>
 #include <optional>
+#include <string_view>
 
-#ifdef DEBUG_VLITEMFIFO
+#ifdef DEBUG_VLITEMLIFO
 #include <iostream>
 #endif
 
 /*
-VLItemFifo: Variable Length Item Fifo
-Buffer that store items of different sizes
+VLItemLifo: Variable Length Item Lifo (last in first out)
+Buffer that can store items of different sizes
 
 0123456789ABCDEF0123456789ABCDEF
 data0data1data2............A50F3
@@ -27,19 +28,14 @@ data0data1data2............A50F3
 namespace mcu {
 
 template<size_t t_buffLen>
-class VLItemFifo
+class VLItemLifo
 {
 public:
     using IdxType = fit_combinations_t<t_buffLen>;
-/*    struct ItemInfo
-    {
-        const uint8_t *data;
-        const IdxType len;
-    };*/
 private:
-    static_assert( t_buffLen > 3 , "t_buffLen must be at least 4 to be usefull" );
+    static_assert( t_buffLen > 3*sizeof(IdxType) , "t_buffLen must be at least 4*sizeof(IdxType) to be usefull" );
 public:
-    VLItemFifo(){ clear(); }
+    VLItemLifo(){ clear(); }
     void clear()
     {
         len() = 0;
@@ -60,7 +56,7 @@ public:
     {
         const auto startIdx = [&](IdxType itemIdx) -> IdxType
         {
-            return _buff[t_buffLen-3-itemIdx];
+            return _buff[t_buffLen-(3+itemIdx)*sizeof(IdxType)];
         };
         auto iC = itemsCount();
         if( itemIdx >= itemsCount() )
@@ -113,7 +109,9 @@ public:
         auto startIdx = tos();
         nextEmptyStartIdx() = startIdx;
         for( IdxType i=0 ; i<sizeof(T) ; i++ )
+        {
             _buff[startIdx++] = sdata.raw[i];
+        }
         tos() += sizeof(T);
         len()++;
         return true;
@@ -139,7 +137,7 @@ public:
     {
         const auto lastStartIdx = [&]() -> IdxType
         {
-            return _buff[t_buffLen-2-len()];
+            return *reinterpret_cast<const IdxType*>(_buff.data() + t_buffLen-(2+len())*sizeof(IdxType));
         };
         if( isEmpty() )
             return std::nullopt;
@@ -156,13 +154,14 @@ public:
     bool isEmpty() const { return itemsCount() == 0; }
     IdxType freeSpace() const
     {
-        if( tos()+len()+2 == t_buffLen )
+        if( tos()+len()+2*sizeof(IdxType) == t_buffLen )
             return 0;
-        return t_buffLen-2-len()-tos()-1;
+        return t_buffLen-2*sizeof(IdxType)-len()-tos()-1*sizeof(IdxType);
     }
-#ifdef DEBUG_VLITEMFIFO
+#ifdef DEBUG_VLITEMLIFO
     template<typename T=int,bool separateWhitSpace=true>
     void print_internals() const
+
     {
         for( size_t i=0 ; i<_buff.size() ; i++ )
         {
@@ -182,12 +181,12 @@ public:
     }
 #endif
 private:
-    IdxType  tos() const { return *(_buff.data()+t_buffLen-2); }
-    IdxType& tos()       { return *(_buff.data()+t_buffLen-2); }
-    IdxType  len() const { return *(_buff.data()+t_buffLen-1); }
-    IdxType& len()       { return *(_buff.data()+t_buffLen-1); }
-    IdxType  nextEmptyStartIdx() const { return _buff[t_buffLen-3-len()]; }
-    IdxType& nextEmptyStartIdx()       { return _buff[t_buffLen-3-len()]; }
+    IdxType  tos() const { return *reinterpret_cast<const IdxType*>(_buff.data()+t_buffLen-2*sizeof(IdxType)); }
+    IdxType& tos()       { return *reinterpret_cast<      IdxType*>(_buff.data()+t_buffLen-2*sizeof(IdxType)); }
+    IdxType  len() const { return *reinterpret_cast<const IdxType*>(_buff.data()+t_buffLen-1*sizeof(IdxType)); }
+    IdxType& len()       { return *reinterpret_cast<      IdxType*>(_buff.data()+t_buffLen-1*sizeof(IdxType)); }
+    IdxType  nextEmptyStartIdx() const { return *reinterpret_cast<const IdxType*>(_buff.data()+t_buffLen-(3+len())*sizeof(IdxType)); }
+    IdxType& nextEmptyStartIdx()       { return *reinterpret_cast<      IdxType*>(_buff.data()+t_buffLen-(3+len())*sizeof(IdxType)); }
 private:
     std::array<uint8_t,t_buffLen> _buff;
 };

@@ -2,7 +2,7 @@
 
 #include "../Container/FifoBuffer.hpp"
 #include "../Utils/TypeUtils.hpp"
-#include "../Container/VLItemFifo.h"
+#include "../Container/VLItemLifo.h"
 #include <array>
 #include <string_view>
 #include <utility>
@@ -94,11 +94,11 @@ template<   char   t_separator     , // = ' '
             char   t_eofMarker     , // = '\r
             size_t t_frameMaxLen   , // = 128
             size_t t_commandsCount ,
-            const std::array<std::pair<std::string_view,CmdParserRetType(*)(VLItemFifo<t_frameMaxLen>&)>,t_commandsCount>& t_commandProcessors>
+            const std::array<std::pair<std::string_view,CmdParserRetType(*)(VLItemLifo<t_frameMaxLen>&)>,t_commandsCount>& t_commandProcessors>
 class CmdParser
 {
 private:
-    template<const std::array<std::pair<std::string_view,CmdParserRetType(*)(VLItemFifo<t_frameMaxLen>&)>,t_commandsCount>& arg>
+    template<const std::array<std::pair<std::string_view,CmdParserRetType(*)(VLItemLifo<t_frameMaxLen>&)>,t_commandsCount>& arg>
     static consteval bool check_all_different()
     {
         for( size_t i=0 ; i<arg.size() ; i++ )
@@ -122,7 +122,7 @@ private:
         invokeCommand
     };
 public:
-    using commandProcessorPrototype = CmdParserRetType(*)(VLItemFifo<t_frameMaxLen>&);
+    using commandProcessorPrototype = CmdParserRetType(*)(VLItemLifo<t_frameMaxLen>&);
 public:
     void start()
     {
@@ -317,7 +317,7 @@ private:
     bool isSeparator(uint8_t data) const{ return (data==t_separator) || (t_separator==' ' && data=='\t'); }
 private:
     BufferType _rxBuff;
-    VLItemFifo<t_frameMaxLen> _command;
+    VLItemLifo<t_frameMaxLen> _command;
     commandProcessorPrototype _processor;
     typename BufferType::IdxType _eofIdx;
     TaskState _st = TaskState::shutdown;
