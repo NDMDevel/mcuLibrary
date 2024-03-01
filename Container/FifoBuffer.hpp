@@ -64,6 +64,10 @@ public:
         }
         return len;
     }
+    t_DataType  peek()    const
+    {
+        return _buff[_tail];
+    }
     t_DataType  operator[](IdxType idx) const
     {
         return itemAt(idx);
@@ -126,7 +130,25 @@ public:
     CircularSpan<t_DataType,t_buffLen> getCircularSpan() const
     {
         return CircularSpan<t_DataType,t_buffLen>(_buff,length(),_tail,_head);
-//        return CircularSpan<t_DataType,t_buffLen>(_buff,_tail,_head);
+    }
+    CircularSpan<t_DataType,t_buffLen> getCircularSpan(IdxType len) const
+    {
+        if( length() <= len )
+            return CircularSpan<t_DataType,t_buffLen>(_buff,length(),_tail,_head);
+        IdxType idx = len;
+        IdxType head = 0;
+        idx %= length();
+        if( _tail < _head )
+            head = _tail+idx;
+        else
+        {
+            if( _tail+idx < t_buffLen )
+                head = _tail+idx;
+            else
+                head = _tail+idx-t_buffLen;
+        }
+        head = incIdx(head);
+        return CircularSpan<t_DataType,t_buffLen>(_buff,len,_tail,head);
     }
 //    FifoBuffer<t_DataType,t_buffLen,t_override> strip(IdxType startIdx,IdxType count) const
 //    {
