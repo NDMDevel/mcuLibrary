@@ -12,8 +12,10 @@ class CircularSpan
 public:
     using IdxType = fit_combinations_t<t_len>;
 public:
+    CircularSpan()
+        : _buff(nullptr), _len(0), _tail(0), _head(0){}
     CircularSpan(const T* buff,IdxType len,IdxType tail,IdxType head)
-        : _buff(buff), _len(len), _head(head) , _tail(tail){}
+        : _buff(buff), _len(len), _tail(tail), _head(head){}
     IdxType size()   const { return _len; }
     IdxType length() const { return _len; }
     const T& operator[](IdxType idx) const
@@ -21,7 +23,7 @@ public:
         return itemAt(idx);
     }
 private:
-    const IdxType& itemAt(IdxType idx) const
+    const T& itemAt(IdxType idx) const
     {
         if( size() == 0 )
             return _buff[_head];

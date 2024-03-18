@@ -18,7 +18,7 @@ public:
     static constexpr auto maxLen = t_buffLen;
     using IdxType = fit_combinations_t<t_buffLen>;
 public:
-    FifoBuffer(bool deepClean=false){ clear(deepClean); }
+    FifoBuffer(/*bool deepClean=false*/){ clear(/*deepClean*/); }
     void 	    put(const t_DataType& data)
     {
         if( isFull() )
@@ -84,12 +84,12 @@ public:
     {
         return incIdx(_head) == _tail;
     }
-    void	    clear(bool deepClean=false)
+    void	    clear(/*bool deepClean=false*/)
     {
         _tail = _head;
-        if( deepClean )
-            for( auto& item : _buff )
-                item = 0;
+//        if( deepClean )
+//            for( auto& item : _buff )
+//                item = 0;
     }
     void        remove(IdxType len,bool fromHead=false)
     {
@@ -189,7 +189,7 @@ public:
     using IdxType = decltype(fit_combinations_t<t_buffLen>());
     static constexpr IdxType maxLen(){ return t_buffLen; }
 public:
-    FifoRaw(bool deepClean=false){ clear(deepClean); }
+    FifoRaw(/*bool deepClean=false*/){ clear(/*deepClean*/); }
     void 	    put(const t_DataType& data)
     {
         if( isFull() )
@@ -251,12 +251,12 @@ public:
     {
         return incIdx(_head) == _tail;
     }
-    void	    clear(bool deepClean=false)
+    void	    clear(/*bool deepClean=false*/)
     {
         _tail = _head;
-        if( deepClean )
-            for( auto& item : _buff )
-                item = 0;
+//        if( deepClean )
+//            for( auto& item : _buff )
+//                item = 0;
     }
     void        remove(IdxType len,bool fromHead=false)
     {
