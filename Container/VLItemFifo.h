@@ -21,7 +21,7 @@ template<typename    t_DataType,
         >
 class VLItemFifo
 {
-    static_assert( t_buffLen > t_itemLen , "t_buffLen must be greater than t_itemLen" );
+    static_assert( t_buffLen >= t_itemLen , "t_buffLen must be greater than t_itemLen" );
 public:
     static constexpr auto maxLen = t_buffLen;
     using IdxType = fit_combinations_t<t_buffLen>;
@@ -37,32 +37,17 @@ public:
         _itemsCount++;
         _emptyItem = true;
     }
-    /*auto append(uint8_t data) -> void
-    {
-        if( isFull() )
-            return;
-        _buff[_head] = data;
-        _head = incIdx(_head);
-        _emptyItem = false;
-    }*/
     template<typename T>
     auto push(T data) -> void
     {
-//        static_assert( sizeof(T) <  t_buffLen , "cant push data bigger than the container size (VLItemFifo<T,N>::maxLen)" );
         static_assert( sizeof(T) <= t_itemLen , "cant push data bigger than the maximun data lentgh (t_itemLen)" );
         if( size_t(currentItemLength()) + sizeof(T) > t_itemLen )
-        {
-            std::cout << "push ignored to avoid overflow\n";
             return;
-        }
         size_t neededSpace = size_t(rawLength()) + sizeof(T);
         if( _emptyItem )
             neededSpace += sizeof(SofType);
         if( neededSpace > t_buffLen )
-        {
-            std::cout << "push ignored to avoid overflow\n";
             return;
-        }
         if( _emptyItem )
         {
             _emptyItem = false;
@@ -79,7 +64,7 @@ public:
         }
         incSof(sizeof(T));
     }
-    auto pop() -> void //std::optional<T>
+    auto pop() -> void
     {
         if( isEmpty() )
             return;
@@ -100,7 +85,6 @@ public:
         IdxType tail = _tail;
         for( SofType i=0 ; i<sizeof(SofType) ; i++ )
             tail = incIdx(tail);
-        std::cout << "tail: " << int(tail) << " firstItemLength(): " << int(firstItemLength()) << std::endl;
         return CircularSpan<t_DataType,t_buffLen>(_buff.data(),firstItemLength(),tail,_head);
     }
     auto clear() -> void
