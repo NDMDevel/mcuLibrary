@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <cstdint>
+#include <array>
 #include <optional>
 #include "../Utils/SerializableT.hpp"
 #include "../Utils/TypeUtils.hpp"
@@ -85,6 +85,15 @@ public:
             return;
         _tail = incIdx(_tail,firstItemLength()+sizeof(SofType));
         _itemsCount--;
+    }
+    auto peek() const -> std::optional<t_DataType>
+    {
+    	if( itemsCount() == 0 )
+    		return std::nullopt;
+        IdxType tail = _tail;
+        for( SofType i=0 ; i<sizeof(SofType) ; i++ )
+            tail = incIdx(tail);
+    	return _buff[tail];
     }
     CircularSpan<t_DataType,t_buffLen> getCircularSpan() const
     {
