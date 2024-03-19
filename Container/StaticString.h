@@ -29,6 +29,7 @@ public:
     {
         return std::string_view(_str.begin(),_len);
     }
+    static constexpr auto capacity() -> size_t { return N; }
 private:
     std::array<char,N> _str;
     size_t _len = 0;
