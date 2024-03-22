@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <string_view>
+#include <cstring>
 
 namespace mcu
 {
@@ -12,6 +13,13 @@ class StaticString
 {
 public:
     auto clear() -> void { _len = 0; }
+    auto append(std::string_view sv) -> void
+    {
+        if( sv.length() > available() )
+            return;
+        strncat(_str.data()+_len,sv.begin(),sv.length());
+        _len += sv.length();
+    }
     auto append(char data) -> void
     {
         if( _len < N )
