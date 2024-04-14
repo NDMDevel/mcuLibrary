@@ -12,7 +12,7 @@ template<size_t N>
 class StaticString
 {
 public:
-    auto clear() -> void { _len = 0; }
+    auto clear() -> void { _str[0] = '\0'; _len = 0; }
     auto append(std::string_view sv) -> void
     {
         if( sv.length() > available() )
