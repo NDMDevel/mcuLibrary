@@ -46,7 +46,7 @@ public:
         size_t neededSpace = size_t(rawLength()) + sizeof(T);
         if( _emptyItem )
             neededSpace += sizeof(SofType);
-        if( neededSpace > t_buffLen )
+        if( neededSpace >= t_buffLen )
             return;
         if( _emptyItem )
         {
